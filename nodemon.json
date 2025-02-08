@@ -1,0 +1,4 @@
+{
+    "ignore":["*.json", "./sezz/*"],
+    "watch": ["*.js"]
+}

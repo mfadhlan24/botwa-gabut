@@ -1,0 +1,65 @@
+import fs from "fs";
+import question from "./utils/question.js";
+
+global.pw = "fadhlan";
+global.phoneNumber = "6287834761210";
+global.owner = {
+    name: "Muhamad Fadlan",
+    nomor: "6283184142539"
+};
+global.setting = {
+    anticall: false
+};
+
+async function init() {
+    if (!fs.existsSync("./setting.json")) {
+        let retries = 3;
+        while (retries > 0) {
+            const paswNow = await question("Masukan Password! : ");
+            global.setting["password"] = paswNow;
+
+            if (paswNow !== global.pw) {
+                console.log(`Password Yang Anda Masukan Salah!. ${retries > 1 ? `Sisa Kesempatan ${retries - 1}` : "Kesempatan Anda Habis!"}`);
+                retries--;
+                if (retries <= 0) return console.log(`Kesempatan Anda Habis!`);
+            } else {
+                console.log(`Yappssss, Selamat Password Anda Benar!!`);
+                break;
+            }
+        }
+
+        const useCode = await question(`Ingin Menggunakan Pairing Code? [Y/n] : `);
+        global.setting["useCode"] = useCode.toLowerCase() === "n" ? false : true;
+    } else {
+        try {
+            const data = JSON.parse(fs.readFileSync("./setting.json"));
+            global.setting = { ...global.setting, ...data };
+        } catch (err) {
+            console.error("Error Membaca File JSON. ", err.message);
+        }
+    }
+
+    await validateWaNumber(); // Pindahkan validasi nomor ke fungsi terpisah
+
+    console.log(global.setting);
+}
+
+async function validateWaNumber() {
+    while (true) {
+        const waNumber = await question(`Masukan Nomor WhatsApp Anda! : +`);
+        global.setting["waNumber"] = waNumber.replace(/\D/g, "");
+
+        if (global.setting["waNumber"] === global.phoneNumber) {
+            fs.writeFileSync("./setting.json", JSON.stringify(global.setting, null, 2));
+            break;
+        } else {
+            console.log(`Nomor WA ini tidak diizinkan! Silakan masukkan ulang.`);
+        }
+    }
+}
+
+init();
+
+dari kode ini saya ingin membuat bot whatsappp dari whiskeysockets/baileys.
+
+coba setupkan koneksinya dengan rapih sampai konekted dan buat file terpisah untuk menghandle sebuah pesan dan berikan command ping juga
