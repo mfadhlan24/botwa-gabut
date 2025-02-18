@@ -48,6 +48,7 @@ export function messageHandler(conn) {
   return async (msg) => {
     try {
       // Proses pesan menggunakan smsg dengan conn yang sudah memiliki decodeJid
+     if(msg.messages[0].broadcast) return;// mencegah bot membaca sw
       const message = smsg(conn, msg.messages[0], conn.store);
       const m = message
       if (!message.message) return;
