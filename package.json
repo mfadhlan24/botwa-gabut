@@ -23,6 +23,7 @@
     "jimp": "^1.6.0",
     "link-preview-js": "^3.0.13",
     "moment-timezone": "^0.5.47",
+    "node-cache": "^5.1.2",
     "nodemon": "^3.1.9",
     "pino": "^9.6.0",
     "qrcode-terminal": "^0.12.0",

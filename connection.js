@@ -10,6 +10,8 @@ import {
 import { Boom } from '@hapi/boom'
 import pino from 'pino'
 import question from './utils/question.js'
+import NodeCache from "node-cache"
+import fs from "fs"
 // Di file utama atau handler
 import { jidDecode } from '@whiskeysockets/baileys';
 const store = makeInMemoryStore({ 
@@ -18,21 +20,48 @@ const store = makeInMemoryStore({
 
 export async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth')
-    const { version } = await fetchLatestBaileysVersion()
+    const { version , isLatest } = await fetchLatestBaileysVersion()
 
     // Tanya apakah ingin menggunakan Pairing Code
-    const usePairingCode = await question('Ingin menggunakan Pairing Code? (Y/n): ')
+    const usePairingCode =  fs.existsSync(".auth") ? await question('Ingin menggunakan Pairing Code? (Y/n): ') : "n"
     const usePairing = usePairingCode.toLowerCase() === 'y'
+    const msgRetryCounterCache = new NodeCache(); 
 
     const sock = makeWASocket({
-        version,
+        version: isLatest ? version : [2, 2413, 1],
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: !usePairing, // Gunakan variabel yang sudah didefinisikan
+        printQRInTerminal: !usePairing, 
+        syncFullHistory: true,
+        msgRetryCounterCache,
         browser: Browsers.macOS('Chrome'),
+        patchMessageBeforeSending: (message) => {
+            const requiresPatch = !!(
+              message.buttonsMessage ||
+              message.templateMessage ||
+              message.listMessage
+            );
+            if (requiresPatch) {
+              message = {
+                viewOnceMessage: {
+                  message: {
+                    messageContextInfo: {
+                      deviceListMetadataVersion: 2,
+                      deviceListMetadata: {},
+                    },
+                    ...message,
+                  },
+                },
+              };
+            }
+            return message;
+          },
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' })),
         },
+        markOnlineOnConnect: true,
+        generateHighQualityLinkPreview: true,
+        defaultQueryTimeoutMs: undefined, // for this issues https://github.com/WhiskeySockets/Baileys/issues/276
         getMessage: async (key) => {
             if (store) {
                 const msg = await store.loadMessage(key.remoteJid, key.id)
