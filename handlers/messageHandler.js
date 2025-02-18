@@ -26,9 +26,10 @@ import { jidDecode } from '@whiskeysockets/baileys';
 
 const chatLogs = [];
 
-function logMessage(fromMe, sender, text) {
+function logMessage(fromMe, sender, text,pushname) {
+  if(!(!!text)) return
   chatLogs.push({
-      Pengirim: fromMe ? "BOT" : sender.split("@")[0], // Tanpa warna untuk tabel
+      Pengirim: fromMe ? "BOT" : `${sender.split("@")[0]} | ${pushname}`, // Tanpa warna untuk tabel
       "Dari Bot?": fromMe ? "✔" : "✖", 
       "Isi Pesan": text
   });
@@ -72,11 +73,10 @@ export function messageHandler(conn) {
       "";
   
   var text = typeof body === "string" ? body : "";
-  // console.log(m);
-  
-  logMessage(m.key.fromMe, m.key.remoteJid, text);
 
   
+  logMessage(m.key.fromMe, m.key.remoteJid,text,m.pushName);
+ 
 
         const jid = message.key.remoteJid
       
@@ -96,7 +96,7 @@ export function messageHandler(conn) {
           
         }
 
-      // ... (logika handling pesan tetap sama)
+     
     } catch (error) {
       console.error("Error handling message:", error);
     }
