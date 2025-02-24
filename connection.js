@@ -12,8 +12,51 @@ import pino from 'pino'
 import question from './utils/question.js'
 import NodeCache from "node-cache"
 import fs from "fs"
-// Di file utama atau handler
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
+import _ from 'lodash';
 import { jidDecode } from '@whiskeysockets/baileys';
+const dbFile = 'src/database.json';
+
+// **Buat defaultData sebelum inisialisasi LowDB**
+const defaultData = {
+    users: {},
+    database: {},
+    chats: {},
+    game: {},
+    settings: {},
+    message: {}
+};
+
+// **Cek apakah file database sudah ada, jika tidak buat baru**
+if (!fs.existsSync(dbFile)) {
+    console.log('[Database] File database.json tidak ditemukan, membuat baru...');
+    fs.writeFileSync(dbFile, JSON.stringify(defaultData, null, 2));
+}
+
+// **Inisialisasi LowDB setelah defaultData didefinisikan**
+const adapter = new JSONFile(dbFile);
+const db = new Low(adapter, defaultData); // Tambahkan defaultData di constructor
+
+export async function loadDatabase() {
+    await db.read();
+
+    // **Cek apakah data kosong, jika iya isi dengan defaultData**
+    if (!db.data || Object.keys(db.data).length === 0) {
+        console.log('[Database] Database kosong, mengisi dengan data default...');
+        db.data = defaultData;
+        await db.write();
+    }
+
+    global.db = db;
+    global.DATABASE = db;
+    global.db.chain = _.chain(global.db.data);
+
+    console.log('[Database] Database berhasil dimuat!');
+}
+
+// **Pastikan database dimuat sebelum digunakan**
+await loadDatabase();
 const store = makeInMemoryStore({ 
     logger: pino().child({ level: 'silent', stream: 'store' }) 
 })
@@ -114,9 +157,24 @@ sock.decodeJid = (jid) => {
             console.log('Bot berhasil terhubung!')
         }
     })
-
+    // Penanganan Pesan
+    
     store.bind(sock.ev)
-    sock.ev.on('creds.update', saveCreds)
+    sock.ev.on('creds.update', saveCreds);
+
+    // FUNC OWN
+      //autostatus view
+  sock.ev.on("messages.upsert", async (chatUpdate) => {
+    if (true) {
+     let mek = chatUpdate.messages[0];
+      if (mek.key && mek.key.remoteJid === "status@broadcast") {
+        await sock.readMessages([mek.key]);
+      }
+    }
+  });
+  // reply
+  sock.sendText = (jid, text, quoted = "", options) =>
+    sock.sendMessage(jid, { text: text, ...options }, { quoted });
     return sock
 }
 
